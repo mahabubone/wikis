@@ -1,0 +1,172 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Sidebar from "../components/Sidebar.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import TableOfContents from "../components/TableOfContents.astro";
+import {
+  getBreadcrumbs,
+  humanizeSlug,
+  extractSource,
+  extractTitle,
+  extractDescription,
+  readingTime,
+  getCategoryLabel,
+  getCategory,
+} from "../utils/content";
+import { jsonLdArticle, jsonLdBreadcrumb } from "../utils/seo";
+
+export async function getStaticPaths() {
+  const wikis = await getCollection("wikis");
+  return wikis.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+// Fallback title/description from markdown body if no frontmatter
+const rawBody: string | undefined = (entry as any).body;
+const title: string = (entry.data as any)?.title ?? extractTitle(rawBody, entry.id);
+const description: string = (entry.data as any)?.description ?? extractDescription(rawBody);
+const sourceUrl: string | undefined = (entry.data as any)?.source ?? extractSource(rawBody);
+const category = getCategory(entry.id);
+const breadcrumbs = getBreadcrumbs(entry.id);
+const site = Astro.site?.toString() ?? "https://mahabubone.github.io/wikis";
+const canonical = new URL(`${entry.id}/`, site).toString();
+const rt = readingTime(rawBody);
+const base = import.meta.env.BASE_URL;
+
+// JSON-LD
+const articleLd = jsonLdArticle({
+  title,
+  description,
+  url: canonical,
+  datePublished: (entry.data as any)?.date,
+  author: (entry.data as any)?.author ?? "mahabubone",
+});
+// ensure publisher name matches site name
+(articleLd as any).publisher = {
+  "@type": "Organization",
+  name: "Wikis by @mahabubone",
+  logo: { "@type": "ImageObject", url: new URL("favicon.svg", site).toString() },
+};
+
+const breadcrumbLd = jsonLdBreadcrumb(
+  breadcrumbs.map((b) => ({
+    name: b.label,
+    item: new URL(b.href, site).toString(),
+  })),
+);
+
+// Prev / next within same category for navigation
+const all = await getCollection("wikis");
+const sameCat = all
+  .filter((e) => e.id.startsWith(category + "/"))
+  .sort((a, b) => a.id.localeCompare(b.id));
+const idx = sameCat.findIndex((e) => e.id === entry.id);
+const prev = idx > 0 ? sameCat[idx - 1] : undefined;
+const next = idx >= 0 && idx < sameCat.length - 1 ? sameCat[idx + 1] : undefined;
+---
+
+<Layout title={`${title} — Wikis by @mahabubone`} description={description} canonical={canonical}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+    <meta property="article:author" content="mahabubone" />
+    {sourceUrl && <link rel="canonical" href={canonical} />}
+  </Fragment>
+
+  <Header />
+  <div class="mx-auto max-w-[1440px] flex">
+    <Sidebar currentSlug={entry.id} />
+    <main class="flex-1 min-w-0 flex">
+      <div class="flex-1 min-w-0">
+        <div class="mx-auto max-w-3xl px-6 py-8">
+          <Breadcrumbs crumbs={breadcrumbs} />
+
+          <div class="mt-6">
+            <div class="inline-flex items-center gap-2 text-xs">
+              <span class="rounded-full bg-zinc-900 text-white px-2.5 py-1 font-medium">{getCategoryLabel(category)}</span>
+              <span class="text-zinc-500">{rt} read</span>
+              <span class="text-zinc-300">•</span>
+              <span class="text-zinc-500 truncate">{entry.id}</span>
+            </div>
+
+            <h1 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
+              {title}
+            </h1>
+
+            {sourceUrl && (
+              <p class="mt-3 text-sm text-zinc-500">
+                <span class="inline-flex items-center gap-1.5">
+                  Source:{" "}
+                  <a href={sourceUrl} target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all">
+                    {sourceUrl}
+                  </a>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0">
+                    <path d="M7 17L17 7" />
+                    <path d="M8 7h9v9" />
+                  </svg>
+                </span>
+              </p>
+            )}
+
+            <p class="mt-4 text-[15px] leading-7 text-zinc-600 border-l-4 border-zinc-200 pl-4 bg-zinc-50 py-3 pr-4 rounded-r-xl">
+              {description}
+            </p>
+          </div>
+
+          <article class="prose-wiki mt-8">
+            <Content />
+          </article>
+
+          {
+            (prev || next) && (
+              <nav class="mt-10 grid gap-3 sm:grid-cols-2 border-t border-zinc-200 pt-6">
+                {prev ? (
+                  <a href={`${base}${prev.id}/`} class="group rounded-xl border border-zinc-200 p-4 hover:border-zinc-300 hover:bg-zinc-50 transition">
+                    <p class="text-xs tracking-widest text-zinc-400 uppercase">Previous</p>
+                    <p class="mt-1 text-sm font-medium text-zinc-900 group-hover:text-blue-600 line-clamp-2">
+                      {humanizeSlug(prev.id)}
+                    </p>
+                    <p class="text-xs text-zinc-500 truncate">{prev.id}</p>
+                  </a>
+                ) : (
+                  <div />
+                )}
+                {next ? (
+                  <a href={`${base}${next.id}/`} class="group rounded-xl border border-zinc-200 p-4 hover:border-zinc-300 hover:bg-zinc-50 transition text-right sm:text-left">
+                    <p class="text-xs tracking-widest text-zinc-400 uppercase">Next</p>
+                    <p class="mt-1 text-sm font-medium text-zinc-900 group-hover:text-blue-600 line-clamp-2">
+                      {humanizeSlug(next.id)}
+                    </p>
+                    <p class="text-xs text-zinc-500 truncate">{next.id}</p>
+                  </a>
+                ) : (
+                  <div />
+                )}
+              </nav>
+            )
+          }
+
+          <div class="mt-8 flex flex-wrap items-center gap-2 text-xs text-zinc-500 border-t border-zinc-200 pt-6">
+            <span>Found an issue?</span>
+            <a href={`https://github.com/search?q=${encodeURIComponent(entry.id)}`} target="_blank" rel="noopener" class="underline hover:text-zinc-900">
+              Edit on GitHub
+            </a>
+            <span>•</span>
+            <a href={`${base}`} class="underline hover:text-zinc-900">
+              Back to home
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <TableOfContents headings={headings} />
+    </main>
+  </div>
+</Layout>

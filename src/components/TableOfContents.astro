@@ -1,0 +1,26 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { headings } = Astro.props;
+const filtered = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{
+  filtered.length > 0 && (
+    <div class="hidden xl:block w-[260px] shrink-0">
+      <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto px-6 py-6">
+        <p class="text-xs font-semibold tracking-widest text-zinc-400 uppercase mb-3">On this page</p>
+        <ul class="space-y-1.5 text-sm">
+          {filtered.map((h) => (
+            <li class:list={["leading-5", h.depth === 3 && "ml-3"]}>
+              <a href={`#${h.slug}`} class="block text-zinc-500 hover:text-zinc-900 hover:underline decoration-zinc-300 underline-offset-4 line-clamp-2">
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}

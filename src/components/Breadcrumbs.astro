@@ -1,0 +1,36 @@
+---
+interface Crumb {
+  label: string;
+  href: string;
+}
+interface Props {
+  crumbs: Crumb[];
+}
+const { crumbs } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<nav aria-label="Breadcrumb" class="text-xs text-zinc-500">
+  <ol class="flex items-center gap-1.5 flex-wrap">
+    {
+      crumbs.map((c, i) => {
+        const isLast = i === crumbs.length - 1;
+        const href = c.href.startsWith("/") ? `${base}${c.href.replace(/^\//, "")}` : c.href;
+        return (
+          <>
+            <li>
+              {isLast ? (
+                <span class="text-zinc-900 font-medium">{c.label}</span>
+              ) : (
+                <a href={href} class="hover:text-zinc-900 hover:underline">
+                  {c.label}
+                </a>
+              )}
+            </li>
+            {!isLast && <li class="text-zinc-300">/</li>}
+          </>
+        );
+      })
+    }
+  </ol>
+</nav>

@@ -1,0 +1,159 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Sidebar from "../../components/Sidebar.astro";
+import { CATEGORIES, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, humanizeSlug, partitionCategory } from "../../utils/content";
+
+export async function getStaticPaths() {
+  return CATEGORIES.map((category) => ({
+    params: { category },
+  }));
+}
+
+const { category } = Astro.params;
+if (!category || !CATEGORIES.includes(category as any)) {
+  return Astro.redirect("/");
+}
+
+const all = await getCollection("wikis");
+const entriesAll = all
+  .filter((e) => e.id.startsWith(`${category}/`))
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const { root, folders } = partitionCategory(entriesAll, category);
+const total = entriesAll.length;
+
+const label = CATEGORY_LABELS[category] ?? category;
+const description = CATEGORY_DESCRIPTIONS[category] ?? `${label} wikis`;
+const site = Astro.site?.toString() ?? "https://mahabubone.github.io/wikis";
+const canonical = new URL(`${category}/`, site).toString();
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title={`${label} — Wikis by @mahabubone`} description={description} canonical={canonical}>
+  <Header />
+  <div class="mx-auto max-w-[1440px] flex">
+    <Sidebar currentSlug={`${category}/`} />
+    <main class="flex-1 min-w-0">
+      <div class="mx-auto max-w-4xl px-6 py-8">
+        <nav class="text-xs text-zinc-500">
+          <a href={`${base}`} class="hover:text-zinc-900 hover:underline">Home</a>
+          <span class="text-zinc-300"> / </span>
+          <span class="text-zinc-900 font-medium">{label}</span>
+        </nav>
+
+        <div class="mt-4">
+          <h1 class="text-3xl font-bold tracking-tight">{label}</h1>
+          <p class="mt-2 text-zinc-600 leading-7">{description}</p>
+          <p class="mt-2 text-sm text-zinc-500">
+            {total} {total === 1 ? "wiki" : "wikis"} • {root.length} doc{root.length !== 1 ? "s" : ""} + {folders.length} folder{folders.length !== 1 ? "s" : ""} • Static, SEO-first
+          </p>
+          <p class="mt-1 text-xs text-zinc-400">Subdirs are second-level groups — each folder is a giant doc with nested sections, not flat root entries.</p>
+        </div>
+
+        {
+          total === 0 ? (
+            <div class="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center">
+              <p class="text-sm text-zinc-500">No wikis yet in this category.</p>
+              <p class="mt-1 text-xs text-zinc-400">
+                Add markdowns to <code class="bg-white border rounded px-1">resources/{category}/</code> (kebab-case, *Source:* + blockquote) and rebuild.
+              </p>
+              <p class="mt-3 text-xs text-zinc-400">Kept with .gitkeep — required.</p>
+              <a href={`${base}`} class="mt-4 inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50">
+                ← Back to all topics
+              </a>
+            </div>
+          ) : (
+            <div class="mt-8 space-y-8">
+              {/* Root-level docs */}
+              {root.length > 0 && (
+                <div>
+                  <h2 class="text-xs font-semibold tracking-widest text-zinc-400 uppercase mb-3">
+                    Docs in {label} — {root.length}
+                  </h2>
+                  <div class="grid gap-3">
+                    {root.map((e) => (
+                      <a href={`${base}${e.id}/`} class="group flex items-center justify-between gap-4 rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-300 hover:shadow-sm transition">
+                        <div class="min-w-0">
+                          <h3 class="font-medium text-zinc-900 group-hover:text-blue-600 truncate">{humanizeSlug(e.id)}</h3>
+                          <p class="text-xs text-zinc-500 truncate">{e.id}</p>
+                        </div>
+                        <span class="hidden sm:inline-flex shrink-0 items-center gap-1 text-xs font-medium text-zinc-500 group-hover:text-zinc-900">
+                          Read <span aria-hidden>→</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Folder groups as second-level */}
+              {folders.map((group) => (
+                <div class="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                  <div class="bg-zinc-50 border-b border-zinc-200 px-5 py-4 flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <h2 class="text-sm font-semibold text-zinc-900 flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-900 text-white text-xs">▦</span>
+                        {group.label}
+                        <span class="text-xs font-normal bg-white border border-zinc-200 rounded-full px-2 py-0.5 text-zinc-500">{group.entries.length} sections</span>
+                      </h2>
+                      <p class="mt-1 text-xs text-zinc-500 truncate">{group.folderSlug}/ • grouped giant doc — not flat root</p>
+                      {group.readme && (
+                        <p class="mt-1 text-xs text-zinc-600">Landing: <span class="font-medium text-zinc-900">{humanizeSlug(group.readme.id)}</span> → overview of all sections</p>
+                      )}
+                    </div>
+                    {group.readme && (
+                      <a href={`${base}${group.readme.id}/`} class="shrink-0 inline-flex items-center gap-1 rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800">
+                        Open overview →
+                      </a>
+                    )}
+                  </div>
+
+                  <div class="p-3 grid gap-2 sm:grid-cols-2">
+                    {group.entries
+                      .sort((a, b) => {
+                        // README (overview) first
+                        const aIsReadme = a.id.toLowerCase().endsWith("/readme");
+                        const bIsReadme = b.id.toLowerCase().endsWith("/readme");
+                        if (aIsReadme && !bIsReadme) return -1;
+                        if (!aIsReadme && bIsReadme) return 1;
+                        return a.id.localeCompare(b.id);
+                      })
+                      .map((e) => {
+                        const isReadme = e.id.toLowerCase().endsWith("/readme");
+                        return (
+                          <a href={`${base}${e.id}/`} class:list={["group flex items-center justify-between gap-2 rounded-xl border p-3 transition", isReadme ? "bg-zinc-900 border-zinc-900 text-white hover:bg-zinc-800 col-span-full" : "bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm"]}>
+                            <div class="min-w-0">
+                              <p class:list={["text-sm font-medium truncate", isReadme ? "text-white" : "text-zinc-900 group-hover:text-blue-600"]}>{isReadme ? "Overview — Giant Doc" : humanizeSlug(e.id)}</p>
+                              <p class:list={["text-xs truncate", isReadme ? "text-zinc-300" : "text-zinc-500"]}>{e.id}</p>
+                            </div>
+                            <span class:list={["shrink-0 text-xs", isReadme ? "text-zinc-300" : "text-zinc-400 group-hover:text-zinc-900"]}>→</span>
+                          </a>
+                        );
+                      })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        }
+
+        <div class="mt-8 rounded-xl bg-zinc-900 text-zinc-100 p-4 text-xs leading-6">
+          <p class="font-medium text-white">Adding a new doc to {label}</p>
+          <ol class="mt-2 list-decimal ml-4 space-y-1 text-zinc-300">
+            <li><code class="bg-zinc-800 rounded px-1">webfetch</code> the ref URL — don’t hallucinate</li>
+            <li>
+              New standalone doc: <code class="bg-zinc-800 rounded px-1">resources/{category}/{"<kebab>"}.md</code> → appears as top-level
+            </li>
+            <li>
+              New giant doc: <code class="bg-zinc-800 rounded px-1">mkdir resources/{category}/{"<folder>"}</code> + <code class="bg-zinc-800 rounded px-1">README.md</code> as overview + sections as <code class="bg-zinc-800 rounded px-1">{"<folder>/..."}.md</code> → second-level group
+            </li>
+            <li>Keep <code>*Source: https://...*</code> + <code>&gt; blockquote</code> header</li>
+            <li><code>npm run build</code> → <code>dist/</code> → GitHub Pages (62 pages)</li>
+          </ol>
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>

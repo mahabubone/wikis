@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Tailwind v4: theme customization via @theme */
+@theme {
+  --font-sans: ui-sans-system, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Base prose resets — minimal wiki style */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white text-zinc-900 antialiased;
+  }
+  /* Dark mode via prefers-color-scheme is auto; class toggle via JS could be added later */
+}
+
+/* Custom utilities */
+@layer utilities {
+  .prose-wiki {
+    @apply max-w-none leading-7;
+  }
+  .prose-wiki :where(h1,h2,h3,h4) {
+    @apply font-semibold tracking-tight scroll-mt-24;
+  }
+  .prose-wiki :where(h1) { @apply text-3xl md:text-4xl mb-4; }
+  .prose-wiki :where(h2) { @apply text-2xl mt-10 mb-4 border-b border-zinc-100 pb-2; }
+  .prose-wiki :where(h3) { @apply text-xl mt-8 mb-3; }
+  .prose-wiki :where(p) { @apply my-4 text-zinc-700 leading-7; }
+  .prose-wiki :where(a) { @apply text-blue-600 hover:text-blue-700 underline decoration-blue-200 underline-offset-4; }
+  .prose-wiki :where(code):not(pre code) {
+    @apply bg-zinc-100 text-zinc-900 rounded px-1.5 py-0.5 text-sm font-mono;
+  }
+  .prose-wiki :where(pre) {
+    @apply bg-zinc-950 text-zinc-100 rounded-xl p-4 overflow-x-auto text-sm leading-6 my-6 border border-zinc-900;
+  }
+  .prose-wiki :where(blockquote) {
+    @apply border-l-4 border-zinc-200 pl-4 italic text-zinc-600 my-6 bg-zinc-50 py-3 pr-4 rounded-r-lg;
+  }
+  .prose-wiki :where(table) { @apply w-full text-sm my-6 border-collapse; }
+  .prose-wiki :where(th) { @apply bg-zinc-50 text-left font-semibold p-3 border border-zinc-200; }
+  .prose-wiki :where(td) { @apply p-3 border border-zinc-200 align-top; }
+  .prose-wiki :where(ul,ol) { @apply my-4 ml-6 list-disc marker:text-zinc-400; }
+  .prose-wiki :where(ol) { @apply list-decimal; }
+  .prose-wiki :where(li) { @apply my-1.5; }
+  .prose-wiki :where(hr) { @apply my-10 border-zinc-200; }
+  .prose-wiki :where(img) { @apply rounded-xl border border-zinc-200 my-6; }
+}
+
+/* Scrollbar styling */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { @apply bg-zinc-300 rounded-full; }
+*::-webkit-scrollbar-track { @apply bg-transparent; }

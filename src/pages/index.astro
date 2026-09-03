@@ -1,0 +1,134 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Sidebar from "../components/Sidebar.astro";
+import { CATEGORIES, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, humanizeSlug, groupByCategory } from "../utils/content";
+
+const all = await getCollection("wikis");
+const grouped = groupByCategory(all);
+const total = all.length;
+const base = import.meta.env.BASE_URL;
+
+// Recent: sort by id (stable) — could use date if frontmatter present
+const recent = [...all].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 8);
+
+const site = Astro.site?.toString() ?? "https://mahabubone.github.io/wikis";
+const canonical = new URL(Astro.url.pathname, site).toString();
+---
+
+<Layout
+  title="Wikis by @mahabubone — API docs, system design & engineering notes"
+  description="SEO-first wikis by @mahabubone. Bruno contract testing, GraphQL, JWT vs PASETO, NestJS modular monolith, OpenCollection spec & more. Static, edge-ready."
+  canonical={canonical}
+>
+  <Header />
+  <div class="mx-auto max-w-[1440px] flex">
+    <Sidebar />
+    <main class="flex-1 min-w-0">
+      <!-- Hero -->
+      <div class="border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
+        <div class="mx-auto max-w-4xl px-6 py-10 sm:py-14">
+          <div class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-600 shadow-sm">
+            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+            {total} wikis • {CATEGORIES.length} topics • Fully static • GitHub Pages ready
+          </div>
+          <h1 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900">
+            Wikis by @mahabubone
+          </h1>
+          <p class="mt-3 text-base sm:text-lg leading-7 text-zinc-600 max-w-2xl">
+            Minimal, SEO-first knowledge base. Markdowns live in <code class="bg-white border border-zinc-200 rounded px-1.5 py-0.5 text-sm">resources/</code> and ship as
+            static HTML with zero JS by default — perfect for GitHub Pages, Cloudflare, or any edge CDN.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <a href={`${base}apis/`} class="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition">
+              Browse APIs
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
+            </a>
+            <a href={`${base}apis/bruno-api-contract-testing/`} class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition">
+              Start reading →
+            </a>
+            <span class="inline-flex items-center text-xs text-zinc-500 px-2 py-2">Astro 7 • Tailwind 4 • MDX • Sitemap</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category grid -->
+      <div class="mx-auto max-w-6xl px-6 py-8">
+        <h2 class="text-sm font-semibold tracking-widest text-zinc-400 uppercase mb-4">Topics</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {
+            CATEGORIES.map((cat) => {
+              const count = grouped[cat]?.length ?? 0;
+              return (
+                <a href={`${base}${cat}/`} class="group rounded-2xl border border-zinc-200 bg-white p-5 hover:border-zinc-300 hover:shadow-sm transition">
+                  <div class="flex items-start justify-between gap-3">
+                    <h3 class="font-semibold text-zinc-900 group-hover:text-blue-600 transition">{CATEGORY_LABELS[cat]}</h3>
+                    <span class="shrink-0 rounded-full bg-zinc-900 text-white text-xs px-2 py-0.5">{count}</span>
+                  </div>
+                  <p class="mt-2 text-sm leading-6 text-zinc-600 line-clamp-2">{CATEGORY_DESCRIPTIONS[cat]}</p>
+                  <span class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-500 group-hover:text-zinc-900">
+                    Explore <span aria-hidden>→</span>
+                  </span>
+                </a>
+              );
+            })
+          }
+        </div>
+
+        <!-- Recent -->
+        <div class="mt-10">
+          <h2 class="text-sm font-semibold tracking-widest text-zinc-400 uppercase mb-4">Recently added</h2>
+          <div class="divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+            {
+              recent.map((e) => {
+                const cat = e.id.split("/")[0];
+                return (
+                  <a href={`${base}${e.id}/`} class="flex items-center justify-between gap-4 px-5 py-4 hover:bg-zinc-50 transition">
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-zinc-900 truncate">{humanizeSlug(e.id)}</p>
+                      <p class="text-xs text-zinc-500 truncate">
+                        {CATEGORY_LABELS[cat]} • {e.id}
+                      </p>
+                    </div>
+                    <span class="hidden sm:inline-flex shrink-0 text-xs text-zinc-400">→</span>
+                  </a>
+                );
+              })
+            }
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="mt-10 rounded-2xl border border-zinc-200 bg-zinc-50 p-6">
+          <h3 class="font-semibold text-zinc-900">How this site is built</h3>
+          <div class="mt-3 grid gap-6 sm:grid-cols-3 text-sm leading-6 text-zinc-600">
+            <div>
+              <p class="font-medium text-zinc-900">1. Markdown is the source</p>
+              <p>Every wiki is a file under <code class="bg-white border rounded px-1">resources/</code> — kebab-case, <code>*Source:*</code> header, blockquote summary.</p>
+            </div>
+            <div>
+              <p class="font-medium text-zinc-900">2. Astro Content Collections</p>
+              <p>Validated with Zod, glob loader every build. No runtime DB. SEO meta, OG, sitemap, RSS auto-generated.</p>
+            </div>
+            <div>
+              <p class="font-medium text-zinc-900">3. Static export</p>
+              <p>
+                <code>output: 'static'</code> → pure HTML/CSS. Deploy to GitHub Pages (or Cloudflare/Vercel) as edge CDN. No Node at runtime.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2 text-xs">
+            <code class="bg-white border border-zinc-200 rounded-full px-3 py-1">npm run dev</code>
+            <code class="bg-white border border-zinc-200 rounded-full px-3 py-1">npm run build</code>
+            <code class="bg-white border border-zinc-200 rounded-full px-3 py-1">dist/ → GitHub Pages</code>
+          </div>
+        </div>
+
+        <footer class="mt-10 border-t border-zinc-200 pt-6 text-xs text-zinc-500">
+          <p>© {new Date().getFullYear()} Wikis by @mahabubone • Built with Astro 7 & Tailwind 4 • <a href={`${base}sitemap-index.xml`} class="underline hover:text-zinc-900">Sitemap</a> • <a href={`${base}rss.xml`} class="underline hover:text-zinc-900">RSS</a> • <a href="https://mahabubone.github.io/wikis/" target="_blank" rel="noopener" class="underline hover:text-zinc-900">Production (GitHub Pages) ↗</a> • <a href="https://github.com/mahabubone/wikis" target="_blank" rel="noopener" class="underline hover:text-zinc-900">Repo ↗</a></p>
+        </footer>
+      </div>
+    </main>
+  </div>
+</Layout>
