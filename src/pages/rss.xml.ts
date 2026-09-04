@@ -5,7 +5,7 @@ import type { APIContext } from "astro";
 
 export async function GET(context: APIContext) {
   const wikis = await getCollection("wikis");
-  const site = context.site?.toString() ?? "https://example.com";
+  const site = context.site?.toString() ?? "https://mahabubone.github.io/wikis";
   // Sort by id for deterministic feed; if date frontmatter added later, sort by date
   const items = await Promise.all(
     wikis.map(async (entry) => {
@@ -23,8 +23,8 @@ export async function GET(context: APIContext) {
   );
 
   return rss({
-    title: "Wikis for devs — RSS",
-    description: "SEO-first wikis for developers by @mahabubone",
+    title: "Wikis for Devs — RSS",
+    description: "SEO-first wikis for devs — by @mahabubone",
     site,
     items: items.sort((a, b) => a.title.localeCompare(b.title)),
     customData: `<language>en-us</language>`,

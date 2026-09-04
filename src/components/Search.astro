@@ -1,0 +1,184 @@
+---
+import { getCollection } from "astro:content";
+import { CATEGORY_LABELS, humanizeSlug } from "../utils/content";
+
+interface Props {
+  variant?: "sidebar" | "hero";
+  placeholder?: string;
+  id?: string;
+}
+
+const { variant = "sidebar", placeholder, id = `search-${variant}` } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const all = await getCollection("wikis");
+
+function labelFor(entry: (typeof all)[number]): string {
+  // @ts-ignore
+  if (entry.data?.title) return entry.data.title;
+  return humanizeSlug(entry.id);
+}
+
+// Build lightweight index — 52 items, ~8KB
+const index = all
+  .map((e) => {
+    const cat = e.id.split("/")[0];
+    return {
+      id: e.id,
+      label: labelFor(e),
+      category: cat,
+      categoryLabel: CATEGORY_LABELS[cat] ?? cat,
+      url: `${base}${e.id}/`,
+      // for fast search: lowercase concatenated
+      haystack: `${labelFor(e)} ${e.id} ${cat} ${CATEGORY_LABELS[cat] ?? cat}`.toLowerCase(),
+    };
+  })
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const indexJson = JSON.stringify(index);
+const isHero = variant === "hero";
+---
+
+<div class:list={["relative", isHero ? "w-full max-w-2xl" : "w-full"] } data-search-root data-variant={variant} data-search-id={id}>
+  <label for={id} class="sr-only">Search wikis</label>
+  <div class="relative">
+    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+      <svg class="h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+    </div>
+    <input
+      id={id}
+      type="search"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder={placeholder ?? (isHero ? `Search ${index.length} wikis… (e.g. bruno, opencollection, jwt)` : "Search wikis…")}
+      class:list={[
+        "w-full rounded-xl border bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-300 transition",
+        isHero
+          ? "pl-10 pr-4 py-3 text-sm border-zinc-300 shadow-sm"
+          : "pl-9 pr-8 py-2 text-sm border-zinc-200",
+      ]}
+      data-search-input
+    />
+    <button
+      type="button"
+      class="absolute inset-y-0 right-0 hidden items-center pr-3 text-zinc-400 hover:text-zinc-600"
+      data-search-clear
+      aria-label="Clear search"
+      tabindex="-1"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div
+    data-search-results
+    class="absolute left-0 right-0 z-30 mt-2 hidden max-h-[60vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg"
+  >
+    <ul data-search-list class="divide-y divide-zinc-100 p-1"></ul>
+    <div data-search-empty class="hidden px-4 py-6 text-center text-sm text-zinc-500">
+      No wikis found.
+      <span class="block text-xs text-zinc-400 mt-1">Try a different keyword — titles, slugs, or categories.</span>
+    </div>
+    <div data-search-hint class="px-3 py-2 text-xs text-zinc-400 border-t border-zinc-100">
+      {index.length} wikis indexed • {isHero ? "Press / to focus" : "Press Esc to clear"}
+    </div>
+  </div>
+
+  <!-- Inline index — no extra fetch, works with base=/wikis/ -->
+  <script type="application/json" data-search-index set:html={indexJson} />
+</div>
+
+<script is:inline define:vars={{ id }}>
+  // Client-side search — lightweight substring, no deps, works offline
+  (() => {
+    const root = document.querySelector(`[data-search-id="${id}"]`);
+    if (!root) return;
+    const input = root.querySelector("[data-search-input]");
+    const resultsWrap = root.querySelector("[data-search-results]");
+    const list = root.querySelector("[data-search-list]");
+    const empty = root.querySelector("[data-search-empty]");
+    const hint = root.querySelector("[data-search-hint]");
+    const clearBtn = root.querySelector("[data-search-clear]");
+    const indexEl = root.querySelector("[data-search-index]");
+    let index = [];
+    try { index = JSON.parse(indexEl?.textContent || "[]"); } catch {}
+
+    const base = document.querySelector('link[rel="canonical"]')?.href || location.origin;
+    // Use index as-is; urls already include base
+
+    function render(items, query) {
+      list.innerHTML = "";
+      if (!query) {
+        resultsWrap.classList.add("hidden");
+        clearBtn.classList.add("hidden");
+        clearBtn.classList.remove("flex");
+        return;
+      }
+      clearBtn.classList.remove("hidden");
+      clearBtn.classList.add("flex");
+
+      if (items.length === 0) {
+        empty.classList.remove("hidden");
+        hint.classList.add("hidden");
+        resultsWrap.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+      hint.classList.remove("hidden");
+      // hint text could show count
+      // hint.textContent = `${items.length} result${items.length===1?"":"s"}`;
+      items.slice(0, 8).forEach((it) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${it.url}" class="flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-zinc-50 transition">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-zinc-900 truncate">${escapeHtml(it.label)}</span>
+            <span class="block text-xs text-zinc-500 truncate">${escapeHtml(it.id)} • ${escapeHtml(it.categoryLabel)}</span>
+          </span>
+          <span class="shrink-0 text-xs text-zinc-400 mt-0.5">→</span>
+        </a>`;
+        list.appendChild(li);
+      });
+      resultsWrap.classList.remove("hidden");
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function onInput() {
+      const q = input.value.trim().toLowerCase();
+      if (!q) { render([], ""); return; }
+      const terms = q.split(/\s+/).filter(Boolean);
+      const filtered = index.filter((it) => terms.every((t) => it.haystack.includes(t)));
+      render(filtered, q);
+    }
+
+    input.addEventListener("input", onInput);
+    input.addEventListener("focus", () => { if (input.value.trim()) onInput(); });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        input.value = "";
+        render([], "");
+        input.blur();
+      }
+    });
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      render([], "");
+      input.focus();
+    });
+    // click outside to close
+    document.addEventListener("click", (e) => {
+      if (!root.contains(e.target)) resultsWrap.classList.add("hidden");
+    });
+    // global "/" to focus (hero variant)
+    if (root.dataset.variant === "hero") {
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+          e.preventDefault();
+          input.focus();
+        }
+      });
+    }
+  })();
+</script>

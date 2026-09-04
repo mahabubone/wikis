@@ -1,0 +1,75 @@
+---
+import { getContributorsForFile } from "../utils/git";
+
+interface Props {
+  filePath: string; // e.g. "resources/apis/bruno-api-contract-testing.md"
+  compact?: boolean; // compact for sidebar / inline
+  showCount?: boolean;
+}
+
+const { filePath, compact = false, showCount = true } = Astro.props;
+const contributors = getContributorsForFile(filePath);
+const totalCommits = contributors.reduce((s, c) => s + c.commits, 0);
+---
+
+{
+  contributors.length === 0 ? (
+    <p class="text-xs text-zinc-400 italic">No contributors yet — file not yet committed.</p>
+  ) : (
+    <div class:list={["flex flex-col gap-2", compact ? "gap-1.5" : "gap-2"]}>
+      <div class="flex items-center gap-1.5 text-xs font-medium text-zinc-600">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-400">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        {contributors.length === 1 ? "Contributor" : "Contributors"}
+        {showCount && (
+          <span class="text-zinc-400 font-normal">
+            • {contributors.length} {contributors.length === 1 ? "author" : "authors"} • {totalCommits} {totalCommits === 1 ? "commit" : "commits"}
+          </span>
+        )}
+      </div>
+
+      <ul class:list={["flex flex-wrap gap-2", compact ? "gap-1.5" : "gap-2"]}>
+        {contributors.map((c) => (
+          <li>
+            <a
+              href={c.profile}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${c.username} — ${c.commits} commit${c.commits === 1 ? "" : "s"} — ${c.name} <${c.email}>`}
+              class:list={[
+                "group flex items-center gap-2 rounded-full border bg-white hover:bg-zinc-50 transition",
+                compact ? "px-2 py-1 text-xs" : "px-2.5 py-1.5 text-xs",
+                "border-zinc-200 hover:border-zinc-300",
+              ]}
+            >
+              <img
+                src={c.avatar}
+                alt={c.username}
+                width={compact ? 20 : 24}
+                height={compact ? 20 : 24}
+                class:list={["rounded-full border border-zinc-200 bg-zinc-100 object-cover shrink-0", compact ? "h-5 w-5" : "h-6 w-6"]}
+                loading="lazy"
+                decoding="async"
+                onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hidden')"
+              />
+              {/* Fallback initials if avatar fails */}
+              <span class="hidden h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white text-[10px] font-bold">
+                {c.username.slice(0, 2).toUpperCase()}
+              </span>
+              <span class="font-medium text-zinc-700 group-hover:text-zinc-900 truncate max-w-[12ch]">@{c.username}</span>
+              <span class="hidden sm:inline text-zinc-400 font-normal">· {c.commits}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <p class="text-xs text-zinc-400">
+        Based on <code class="bg-white border border-zinc-200 rounded px-1">git log --follow</code> for <code class="bg-white border border-zinc-200 rounded px-1">{filePath}</code>
+      </p>
+    </div>
+  )
+}

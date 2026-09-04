@@ -10,9 +10,10 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    @apply overflow-x-hidden;
   }
   body {
-    @apply bg-white text-zinc-900 antialiased;
+    @apply bg-white text-zinc-900 antialiased overflow-x-hidden;
   }
   /* Dark mode via prefers-color-scheme is auto; class toggle via JS could be added later */
 }
@@ -39,9 +40,9 @@
   .prose-wiki :where(blockquote) {
     @apply border-l-4 border-zinc-200 pl-4 italic text-zinc-600 my-6 bg-zinc-50 py-3 pr-4 rounded-r-lg;
   }
-  .prose-wiki :where(table) { @apply w-full text-sm my-6 border-collapse; }
-  .prose-wiki :where(th) { @apply bg-zinc-50 text-left font-semibold p-3 border border-zinc-200; }
-  .prose-wiki :where(td) { @apply p-3 border border-zinc-200 align-top; }
+  .prose-wiki :where(table) { @apply w-full text-sm my-6 border-collapse block max-w-full overflow-x-auto; -webkit-overflow-scrolling: touch; }
+  .prose-wiki :where(th) { @apply bg-zinc-50 text-left font-semibold p-3 border border-zinc-200 whitespace-nowrap; }
+  .prose-wiki :where(td) { @apply p-3 border border-zinc-200 align-top whitespace-nowrap sm:whitespace-normal; }
   .prose-wiki :where(ul,ol) { @apply my-4 ml-6 list-disc marker:text-zinc-400; }
   .prose-wiki :where(ol) { @apply list-decimal; }
   .prose-wiki :where(li) { @apply my-1.5; }

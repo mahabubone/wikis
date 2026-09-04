@@ -11,7 +11,7 @@ interface Props {
 
 const {
   title,
-  description = "Wikis by @mahabubone — API docs, system design, debugging, principles, and engineering notes.",
+  description = "Wikis for Devs — API docs, system design, debugging, principles, and engineering notes.",
   canonical,
   ogImage = "/og.png",
   noindex = false,
@@ -39,7 +39,7 @@ const ogURL = ogImage.startsWith("http") ? ogImage : new URL(ogImage, site).toSt
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={ogURL} />
-    <meta property="og:site_name" content="Wikis by @mahabubone" />
+    <meta property="og:site_name" content="Wikis for Devs" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />

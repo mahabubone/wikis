@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import { CATEGORIES, CATEGORY_LABELS, humanizeSlug, partitionCategory } from "../utils/content";
+import Search from "./Search.astro";
 
 interface Props {
   currentSlug?: string;
@@ -39,6 +40,10 @@ function isFolderActive(folderSlug: string): boolean {
 
 <aside class="hidden lg:block w-[300px] shrink-0">
   <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto border-r border-zinc-200 bg-zinc-50/50 px-4 py-6">
+    <div class="mb-4">
+      <Search variant="sidebar" id="search-sidebar" />
+      <p class="mt-2 text-xs text-zinc-400">Press <kbd class="bg-white border border-zinc-200 rounded px-1">/</kbd> on homepage to focus</p>
+    </div>
     <div class="space-y-3">
       {
         CATEGORIES.map((cat) => {
@@ -175,11 +180,161 @@ function isFolderActive(folderSlug: string): boolean {
 
     <div class="mt-8 pt-6 border-t border-zinc-200">
       <p class="text-xs text-zinc-500 leading-5">
-        <span class="font-medium text-zinc-700">Wikis by @mahabubone</span><br />
+        <span class="font-medium text-zinc-700">Wikis for Devs</span><br />
         Curated markdowns in <code class="bg-white border border-zinc-200 rounded px-1">resources/</code>.<br />
-        Subdirs are second-level groups — giant doc + sections.<br />
-        <a href={`${base}apis/`} class="text-blue-600 hover:underline">Browse APIs →</a> • <a href="https://mahabubone.github.io/wikis/" target="_blank" rel="noopener" class="text-emerald-600 hover:underline">Live on Pages ↗</a>
+        Subdirs are second-level groups — giant doc + sections.
       </p>
     </div>
   </div>
 </aside>
+
+<!-- Mobile drawer — hidden on lg, toggled by #mobile-nav-toggle -->
+<div id="mobile-sidebar" class="lg:hidden fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div id="mobile-sidebar-backdrop" class="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm"></div>
+  <div class="absolute left-0 top-0 h-full w-[86%] max-w-[340px] overflow-y-auto bg-white border-r border-zinc-200 shadow-2xl">
+    <div class="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-zinc-200 bg-white px-4 py-3">
+      <span class="font-semibold text-sm">Wikis for Devs</span>
+      <button
+        id="mobile-sidebar-close"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100"
+        aria-label="Close navigation"
+        type="button"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <div class="p-4">
+      <div class="mb-4">
+        <Search variant="sidebar" id="search-sidebar-mobile" />
+      </div>
+      <div class="space-y-3">
+        {
+          CATEGORIES.map((cat) => {
+            const entries = groupedFlat[cat] ?? [];
+            const isCategoryActive = currentSlug ? currentSlug.startsWith(cat + "/") || currentSlug === cat : false;
+            const defaultOpen = isCategoryActive || (!currentSlug && cat === "apis");
+            if (entries.length === 0) {
+              return (
+                <details class="group/catalog rounded-xl border border-zinc-200 bg-white/40 open:bg-white open:shadow-sm transition" open={defaultOpen}>
+                  <summary class="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none">
+                    <span class="flex items-center gap-2 min-w-0">
+                      <svg class="h-3.5 w-3.5 text-zinc-400 group-open/catalog:rotate-90 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6" /></svg>
+                      <span class="text-sm font-semibold text-zinc-500 truncate">{CATEGORY_LABELS[cat]}</span>
+                    </span>
+                    <span class="text-[10px] bg-zinc-100 text-zinc-400 rounded-full px-1.5 py-0.5">0</span>
+                  </summary>
+                  <div class="px-3 pb-3 pt-1 border-t border-zinc-100 mt-1">
+                    <p class="text-xs text-zinc-400 italic">No docs yet — .gitkeep</p>
+                  </div>
+                </details>
+              );
+            }
+            const { root, folders } = partitionCategory(entries, cat);
+            const totalCount = entries.length;
+            return (
+              <details class="group/catalog rounded-xl border border-zinc-200 bg-white/40 open:bg-white open:shadow-sm transition" open={defaultOpen}>
+                <summary class="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none">
+                  <span class="flex items-center gap-2 min-w-0">
+                    <svg class="h-3.5 w-3.5 text-zinc-400 group-open/catalog:rotate-90 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6" /></svg>
+                    <span class="text-sm font-semibold text-zinc-700 truncate">{CATEGORY_LABELS[cat]}</span>
+                  </span>
+                  <span class="shrink-0 text-[10px] bg-zinc-900 text-white rounded-full px-1.5 py-0.5">{totalCount}</span>
+                </summary>
+                <div class="px-2 pb-2 pt-1 border-t border-zinc-100 mt-1 space-y-2">
+                  {root.length > 0 && (
+                    <ul class="space-y-0.5 mb-2">
+                      {root.map((e) => (
+                        <li>
+                          <a
+                            href={`${base}${e.id}/`}
+                            class:list={[
+                              "block rounded-lg px-2.5 py-1.5 text-sm leading-5 transition border",
+                              isActive(e.id) ? "bg-zinc-900 border-zinc-900 text-white font-medium" : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:border-zinc-200 hover:text-zinc-900",
+                            ]}
+                            title={e.id}
+                          >
+                            {labelFor(e)}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {folders.map((group) => {
+                    const open = isFolderActive(group.folderSlug);
+                    const folderHref = group.readme ? `${base}${group.readme.id}/` : undefined;
+                    return (
+                      <details class="group/folder rounded-xl border border-zinc-200 bg-zinc-50 open:bg-white open:shadow-sm transition" open={open}>
+                        <summary class="flex items-center justify-between gap-2 px-2.5 py-2 cursor-pointer list-none">
+                          <span class="flex items-center gap-2 min-w-0">
+                            <svg class="h-3.5 w-3.5 text-zinc-400 group-open/folder:rotate-90 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6" /></svg>
+                            {folderHref ? (
+                              <a href={folderHref} class:list={["text-sm font-medium truncate hover:text-blue-600", isActive(group.readme!.id) ? "text-zinc-900" : "text-zinc-700"]} onclick="event.stopPropagation()" title={group.folderSlug}>
+                                {group.label}
+                              </a>
+                            ) : (
+                              <span class="text-sm font-medium text-zinc-700 truncate" title={group.folderSlug}>{group.label}</span>
+                            )}
+                          </span>
+                          <span class="shrink-0 text-[10px] bg-zinc-900 text-white rounded-full px-1.5 py-0.5">{group.entries.length}</span>
+                        </summary>
+                        <ul class="px-2 pb-2 pt-1 space-y-0.5 border-t border-zinc-100 mt-1">
+                          {group.entries.filter((e) => !e.id.toLowerCase().endsWith("/readme")).map((e) => (
+                            <li>
+                              <a
+                                href={`${base}${e.id}/`}
+                                class:list={[
+                                  "block rounded-lg px-2.5 py-1.5 text-sm leading-5 transition border ml-4",
+                                  isActive(e.id) ? "bg-zinc-900 border-zinc-900 text-white font-medium" : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:border-zinc-200 hover:text-zinc-900",
+                                ]}
+                                title={e.id}
+                              >
+                                {labelFor(e)}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })
+        }
+      </div>
+      <div class="mt-6 pt-4 border-t border-zinc-200">
+        <div class="flex gap-2 text-xs">
+          <a href="https://www.supportkori.com/mahabubone" target="_blank" rel="noopener" class="flex-1 text-center rounded-full bg-pink-50 border border-pink-200 text-pink-700 py-2 font-medium hover:bg-pink-100">Tip me :)</a>
+          <a href="https://github.com/mahabubone/wikis" target="_blank" rel="noopener" class="flex-1 text-center rounded-full border border-zinc-200 bg-white py-2 font-medium hover:bg-zinc-50">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    const btn = document.getElementById("mobile-nav-toggle");
+    const drawer = document.getElementById("mobile-sidebar");
+    const backdrop = document.getElementById("mobile-sidebar-backdrop");
+    const closeBtn = document.getElementById("mobile-sidebar-close");
+    if (!btn || !drawer) return;
+    const open = () => {
+      drawer.classList.remove("hidden");
+      drawer.setAttribute("aria-hidden", "false");
+      btn.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+    };
+    const close = () => {
+      drawer.classList.add("hidden");
+      drawer.setAttribute("aria-hidden", "true");
+      btn.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    };
+    btn.addEventListener("click", () => (drawer.classList.contains("hidden") ? open() : close()));
+    closeBtn?.addEventListener("click", close);
+    backdrop?.addEventListener("click", close);
+    drawer.querySelectorAll("a").forEach((a) => a.addEventListener("click", close));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !drawer.classList.contains("hidden")) close(); });
+  })();
+</script>

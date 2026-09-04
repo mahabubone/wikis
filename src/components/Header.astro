@@ -1,7 +1,6 @@
 ---
 const base = import.meta.env.BASE_URL;
-// Production GitHub Pages URL — update if repo name changes
-const GH_PAGES_URL = "https://mahabubone.github.io/wikis/";
+const SUPPORTKORI_URL = "https://www.supportkori.com/mahabubone";
 const GH_REPO_URL = "https://github.com/mahabubone/wikis";
 ---
 
@@ -10,19 +9,29 @@ const GH_REPO_URL = "https://github.com/mahabubone/wikis";
     <div class="flex h-14 items-center justify-between gap-4">
       <a href={`${base}`} class="flex items-center gap-2.5 shrink-0">
         <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-900 text-white text-[11px] font-bold tracking-widest">W</span>
-        <span class="font-semibold tracking-tight">Wikis <span class="text-zinc-500 font-normal">by @mahabubone</span></span>
+        <span class="font-semibold tracking-tight">Wikis for Devs</span>
       </a>
 
       <div class="flex items-center gap-2">
+        <button
+          id="mobile-nav-toggle"
+          class="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100"
+          aria-label="Open navigation"
+          aria-expanded="false"
+          aria-controls="mobile-sidebar"
+          type="button"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pointer-events-none"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
         <a
-          href={GH_PAGES_URL}
+          href={SUPPORTKORI_URL}
           target="_blank"
           rel="noopener"
-          class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition"
-          title="Production build — GitHub Pages"
+          class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-pink-700 bg-pink-50 border border-pink-200 px-3 py-1.5 rounded-full hover:bg-pink-100 transition"
+          title="Support on SupportKori — https://www.supportkori.com/mahabubone"
         >
-          <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          Live on Pages
+          <span class="h-2 w-2 rounded-full bg-pink-500 animate-pulse"></span>
+          Tip me :)
         </a>
         <a
           href={GH_REPO_URL}

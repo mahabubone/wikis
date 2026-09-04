@@ -16,6 +16,7 @@ import {
   getCategory,
 } from "../utils/content";
 import { jsonLdArticle, jsonLdBreadcrumb } from "../utils/seo";
+import Contributors from "../components/Contributors.astro";
 
 export async function getStaticPaths() {
   const wikis = await getCollection("wikis");
@@ -51,7 +52,7 @@ const articleLd = jsonLdArticle({
 // ensure publisher name matches site name
 (articleLd as any).publisher = {
   "@type": "Organization",
-  name: "Wikis by @mahabubone",
+  name: "Wikis for Devs",
   logo: { "@type": "ImageObject", url: new URL("favicon.svg", site).toString() },
 };
 
@@ -72,7 +73,7 @@ const prev = idx > 0 ? sameCat[idx - 1] : undefined;
 const next = idx >= 0 && idx < sameCat.length - 1 ? sameCat[idx + 1] : undefined;
 ---
 
-<Layout title={`${title} — Wikis by @mahabubone`} description={description} canonical={canonical}>
+<Layout title={`${title} — Wikis for Devs`} description={description} canonical={canonical}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(articleLd)} />
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
@@ -118,6 +119,11 @@ const next = idx >= 0 && idx < sameCat.length - 1 ? sameCat[idx + 1] : undefined
             <p class="mt-4 text-[15px] leading-7 text-zinc-600 border-l-4 border-zinc-200 pl-4 bg-zinc-50 py-3 pr-4 rounded-r-xl">
               {description}
             </p>
+
+            <!-- Contributors per file — avatar x username from git log -->
+            <div class="mt-5 rounded-xl border border-zinc-200 bg-white p-3 sm:p-4">
+              <Contributors filePath={`resources/${entry.id}.md`} />
+            </div>
           </div>
 
           <article class="prose-wiki mt-8">

@@ -1,11 +1,11 @@
-# Wikis by @mahabubone
+# Wikis for Devs
 
-SEO-first, edge-friendly static wikis site — Astro 7 + Tailwind 4, markdowns in `resources/`, `output: static` for GitHub Pages.
+SEO-first, edge-friendly static wikis site — Astro 7 + Tailwind 4, markdowns in `resources/`, `output: static` for GitHub Pages. By [@mahabubone](https://github.com/mahabubone).
 
 - **Site**: https://mahabubone.github.io/wikis/
 - **Repo**: https://github.com/mahabubone/wikis
-- **Stack**: TS/Node.js, Astro 7.3.1, Tailwind 4, MDX, sitemap, RSS, 62 pages static
-- **Content**: `resources/` is source of truth — `apis/` (Bruno, JWT vs PASETO, NestJS, OpenCollection 48-file spec), plus `agentic-swe`, `databases`, `debugging`, `mobile-apps`, `principles`, `system-design`, `web-apps` (all collapsable catalogs)
+- **Stack**: TS/Node.js, Astro 7.3.1, Tailwind 4, MDX, sitemap, RSS, 71 pages static
+- **Content**: `resources/` is source of truth — `apis/` (Bruno, JWT vs PASETO, NestJS, OpenCollection 48-file spec), plus `agentic-swe`, `databases`, `debugging`, `mobile-apps`, `principles` (SOLID/DDD/CQRS/EDA/outbox), `system-design`, `web-apps` (TanStack Start & React) — all collapsable catalogs
 - **Dev**: `npm run dev` (dev at `http://localhost:4321/wikis/` since `BASE=/wikis/`), `npm run build` → `dist/` (pure HTML/CSS, ~27KB CSS, 0 JS default)
 
 ## GitHub Pages (production — no error-prone builds)
